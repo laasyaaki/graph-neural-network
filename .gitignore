@@ -1,0 +1,17 @@
+# Generated Python and test files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local builds and compiled extensions
+build/
+*.so
+*.pyd
+*.dll
+*.dylib
+
+# Editor and system files
+.DS_Store
+.idea/
+.vscode/
