@@ -41,6 +41,8 @@ def sparse_matmul(A: SparseMatrix, X: Tensor, *, backend: str = "reference") -> 
 
 `values` is a Needle Tensor of shape `(s,)`, `X` is a Needle Tensor of shape `(n, f)`, and `Y` is a dense Needle Tensor of shape `(m, f)`. All numerical tensors are `float32` on the same supported CPU device. `SparseMatrix` holds fixed `layout` and differentiable `values`; it is not a Needle Tensor itself. The sparse operation's backward returns `spmm_transpose(layout, values, G)` for `X` and `sampled_dot(layout, G, X)` for `values`. Return gradients through Needle's Tensor operation machinery, so ordinary optimizers can update `values` when it is a parameter. Before Person 2 implements the operation, calling it raises `NotImplementedError` and importing `needle` still succeeds.
 
+The backward results are themselves Tensor operations, exported from `needle.ops.ops_sparse` with the same `backend` keyword: `sparse_matmul_transpose(A, G)` for `A.T @ G` and `sampled_dot(layout, G, X)`. The three operations differentiate into one another, so gradients of gradients also work. `SparseMatrix` also supports `A @ X` (reference backend) and `A.to_dense()` for tests. An optimizer updates `A.values` in place, so the same `SparseMatrix` object sees the new values. `nn.Module.parameters()` does not look inside a `SparseMatrix`; pass `A.values` to the optimizer explicitly when the edge weights are trained.
+
 ## GCN convention
 
 ```python
