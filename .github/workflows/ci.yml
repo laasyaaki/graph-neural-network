@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pytest pybind11 "cmake<4"
+      - name: Build the CPU extension
+        run: make lib
+      - name: Check the CPU extension loads
+        run: PYTHONPATH=python python -c "import needle.backend_ndarray as nd; assert nd.cpu().enabled()"
+      - name: Sparse and GCN tests
+        run: python -m pytest -q

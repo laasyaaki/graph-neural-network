@@ -36,4 +36,8 @@ For a graph, use `N` nodes and a square adjacency `A` of shape `(N, N)`. Call th
 4. Merge components incrementally. Coordinate any change to `docs/sparse_contract.md` before changing an interface.
 5. Connect CPU kernels to autograd, then connect sparse aggregation to the GCN. Run gradient checks, dense/sparse equivalence checks, and final CPU benchmarks.
 
-The HW4 Needle source, tests, notebook, and build files are tracked directly in `prev_hws/hw4`. From that folder, `make lib` builds the CPU extension on a supported Unix-like toolchain; set `PYTHONPATH=python` to import Needle and run the HW4 tests. The sparse GCN setup and its CI checks still need to be added.
+The HW4 Needle source, tests, notebook, and build files are kept unchanged in `prev_hws/hw4` for reference. The working copy lives at the repository root: `python/needle`, `src`, `CMakeLists.txt`, `Makefile`, and the HW4 tests in `tests/hw4`.
+
+From the repository root, `make lib` builds the CPU extension on a supported Unix-like toolchain. `import needle` works without the build; `needle.backend_ndarray.cpu().enabled()` reports whether the extension is available, and `cpu_numpy()` works everywhere. Run `python -m pytest` from the root to run `tests/sparse` (`pytest.ini` sets the Python path). CI in `.github/workflows/ci.yml` builds the extension on Ubuntu and runs the same tests.
+
+The setup commit adds the minimal `CSRLayout`, NumPy reference kernels in `sparse_reference.py`, the backend dispatch in `backend_ndarray/sparse.py`, `SparseMatrix`, a `sparse_matmul` stub, and `nn.dense_aggregate`. The compiled sparse kernel (`src/sparse_backend_cpu.cc`) and its build target are not part of setup; `backend="cpu"` raises until they exist.
