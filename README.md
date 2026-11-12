@@ -30,10 +30,10 @@ For a graph, use `N` nodes and a square adjacency `A` of shape `(N, N)`. Call th
 
 ## Working order
 
-1. Verify the HW4 Needle baseline now tracked at the repository root, add the setup pieces above, and record the setup commit hash.
+1. Verify the HW4 Needle baseline in `prev_hws/hw4`, add the setup pieces above, and record the setup commit hash.
 2. Create three feature branches from that exact hash.
 3. Develop against the reference kernels and dense path; keep tests with the component that owns them.
 4. Merge components incrementally. Coordinate any change to `docs/sparse_contract.md` before changing an interface.
 5. Connect CPU kernels to autograd, then connect sparse aggregation to the GCN. Run gradient checks, dense/sparse equivalence checks, and final CPU benchmarks.
 
-The HW4 Needle source, tests, notebook, and build files are tracked directly in this repository. From the repository root, `make lib` builds the CPU extension on a supported Unix-like toolchain; set `PYTHONPATH=python` to import Needle and run the HW4 tests. The sparse GCN setup and its CI checks still need to be added.
+The HW4 Needle source, tests, notebook, and build files are tracked directly in `prev_hws/hw4`. From that folder, `make lib` builds the CPU extension on a supported Unix-like toolchain; set `PYTHONPATH=python` to import Needle and run the HW4 tests. The sparse GCN setup and its CI checks still need to be added.
