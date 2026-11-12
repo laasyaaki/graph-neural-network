@@ -1,6 +1,6 @@
 # Sparse interface contract
 
-This is the interface for the setup commit and the three feature branches. The completed HW4 Needle checkout is still required before these paths can be implemented and verified in this repository.
+This is the interface for the setup commit and the three feature branches. The HW4 Needle baseline is tracked at the repository root; the sparse paths described here still need to be implemented and verified.
 
 ## Shapes and storage
 
