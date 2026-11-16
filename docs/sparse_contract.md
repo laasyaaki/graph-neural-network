@@ -1,6 +1,6 @@
 # Sparse interface contract
 
-This is the interface for the setup commit and the three feature branches. The HW4 Needle baseline is tracked in `prev_hws/hw4`; the sparse paths described here still need to be implemented and verified.
+This is the interface for the setup commit and the three feature branches. The HW4 Needle baseline is tracked in `prev_hws/hw4`; the Tensor API is implemented there; the shared CSR container and compiled sparse kernels remain separate backend work.
 
 ## Shapes and storage
 
@@ -39,7 +39,7 @@ class SparseMatrix:
 def sparse_matmul(A: SparseMatrix, X: Tensor, *, backend: str = "reference") -> Tensor: ...
 ```
 
-`values` is a Needle Tensor of shape `(s,)`, `X` is a Needle Tensor of shape `(n, f)`, and `Y` is a dense Needle Tensor of shape `(m, f)`. All numerical tensors are `float32` on the same supported CPU device. `SparseMatrix` holds fixed `layout` and differentiable `values`; it is not a Needle Tensor itself. The sparse operation's backward returns `spmm_transpose(layout, values, G)` for `X` and `sampled_dot(layout, G, X)` for `values`. Return gradients through Needle's Tensor operation machinery, so ordinary optimizers can update `values` when it is a parameter. Before Person 2 implements the operation, calling it raises `NotImplementedError` and importing `needle` still succeeds.
+`values` is a Needle Tensor of shape `(s,)`, `X` is a Needle Tensor of shape `(n, f)`, and `Y` is a dense Needle Tensor of shape `(m, f)`. All numerical tensors are `float32` on the same supported CPU device. `SparseMatrix` holds fixed `layout` and differentiable `values`; it is not a Needle Tensor itself. The sparse operation's backward returns `spmm_transpose(layout, values, G)` for `X` and `sampled_dot(layout, G, X)` for `values`. Return gradients through Needle's Tensor operation machinery, so ordinary optimizers can update `values` when it is a parameter. The operation is exported as `needle.sparse_matmul`; `needle.SparseMatrix` holds the original values Tensor, so optimizer updates remain visible. Its backward operations also have derivative rules for higher-order differentiation.
 
 ## GCN convention
 
@@ -59,3 +59,15 @@ output = self.aggregate(graph, projected)
 Person 1 owns `python/needle/backend_ndarray/sparse.py`, `python/needle/backend_ndarray/sparse_reference.py`, `src/sparse_backend_cpu.cc`, build configuration, and backend tests. Person 2 owns `python/needle/sparse.py`, `python/needle/ops/ops_sparse.py`, autograd tests, package exports, this contract, and CI. Person 3 owns `python/needle/nn/nn_gnn.py`, `graph_data.py`, `apps/train_gcn.py`, GCN tests, and benchmarks.
 
 The setup commit must test all three reference functions on a rectangular matrix and test backward through dense aggregation on the small graph fixture. Subsequent checks compare reference and CPU results, sparse and dense gradients, and sparse and dense GCN outputs on the same normalized adjacency. Do not report reference-kernel timing as sparse CPU performance.
+
+## Tensor implementation and verification
+
+Sameeksha's code lives under `prev_hws/hw4/python/needle`, alongside the existing baseline. Until the shared `CSRLayout` is available, `SparseMatrix` accepts a layout object exposing `shape`, `indptr`, and `indices` with the exact types and canonical invariants above. The wrapper validates these invariants without modifying the arrays. Callers must keep structure fixed during forward and backward; only `values` may be updated by an optimizer. Use `nn.Parameter` for trainable stored values and pass that Parameter to SGD or Adam (or assign it as a Module attribute); `SparseMatrix` itself is not a Module or Parameter.
+
+For the NDArray backend, reference dispatch imports `backend_ndarray.sparse_reference` when available. While that module is absent, a private row-wise reference adapter in `ops_sparse.py` supports development without changing backend-owned files. The adapter never builds a dense adjacency. `backend="cpu"` imports the shared `backend_ndarray.sparse` functions and raises if unavailable; it never uses the adapter. These functions must route to compiled kernels when the backend owner implements them. Selecting a CPU backend does not change the Tensor gradient graph.
+
+The NumPy-only Needle mode (`NEEDLE_BACKEND=np`) can run the private reference adapter without building the baseline extension. It is a development check, not validation of the native NDArray or compiled sparse backend. The default `nd` mode uses `cpu_numpy()` or `cpu()` NDArrays and preserves the input device. Reference arithmetic uses float32; comparisons use tolerances to allow different accumulation orders.
+
+From `prev_hws/hw4`, run `PYTHONPATH=python NEEDLE_BACKEND=np python -m unittest discover -s tests/sparse -v` on Unix-like shells. For default NDArray coverage, first run `make lib`, then use `NEEDLE_BACKEND=nd`. CI runs both modes. Tests check dense equivalence, both first derivatives, finite differences, shared-input accumulation, frozen inputs, second derivatives, empty dimensions, stored zeros, invalid inputs, explicit backend dispatch, and repeated SGD/Adam updates. Mocked CPU dispatch checks integration signatures only; actual compiled sparse CPU equivalence remains blocked on the backend implementation.
+
+Package import loads `needle.data` on first access so reference-only sparse development does not require the dataset module's native extension dependency. Dataset access retains its original build requirements.
