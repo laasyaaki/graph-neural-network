@@ -1,0 +1,32 @@
+name: Sparse Tensor checks
+on: [push, pull_request]
+jobs:
+  sparse-autograd:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [np, nd]
+    defaults:
+      run:
+        working-directory: prev_hws/hw4
+    env:
+      PYTHONPATH: python
+      NEEDLE_BACKEND: ${{ matrix.backend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install numpy pybind11 pytest
+      - name: Build native backend for the selected Python
+        if: matrix.backend == 'nd'
+        run: |
+          cmake -S . -B build -DPython_EXECUTABLE="$(command -v python)"
+          cmake --build build --parallel 2
+      - name: Check Needle import
+        run: |
+          python -c "import sys; print(sys.executable); print(sys.version)"
+          python -c "import needle; print('Needle:', needle.__file__); print('Backend:', needle.BACKEND)"
+      - name: Run sparse autograd tests
+        run: python -m unittest discover -s tests/sparse -v
